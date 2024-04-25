@@ -1,113 +1,186 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { TransactionBlock } from "@mysten/sui.js/transactions";
+import { ConnectButton, addressEllipsis, useWallet } from "@suiet/wallet-kit";
+import { useState } from "react";
+
+
+export default function Home({children}:{children: React.ReactNode}) {
+	const wallet = useWallet();
+  const [selectedImageUrl, setSelectedImageUrl] = useState("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const handleImageClick = (imageUrl: string) => {
+    setSelectedImageUrl((prevImageUrl) =>
+      prevImageUrl === imageUrl ? "" : imageUrl
+    );
+  };
+
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedImageUrl(e.target.value);
+  };
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+  };
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDescription(e.target.value);
+  };
+  async function mintNft() {
+    if (!wallet.connected) return;
+    if (!name || !description || !selectedImageUrl) {
+      alert("Please fill in all fields: Name, Description, and Image URL.");
+      return;
+    }
+    const txb = createMintNftTxnBlock(name,description,selectedImageUrl);
+    try {
+      // call the wallet to sign and execute the transaction
+      const res = await wallet.signAndExecuteTransactionBlock({
+        transactionBlock: txb,
+      });
+      console.log("nft minted successfully!", res);
+      alert("Congrats! your nft is minted!");
+    } catch (e) {
+      alert("Oops, nft minting failed");
+      console.error("nft mint failed", e);
+    }
+  }
+  function createMintNftTxnBlock(
+    name: string,
+    description: string,
+    image_url: string
+  ) {
+    // define a programmable transaction block
+    const txb = new TransactionBlock();
+  
+    // note that this is a devnet contract address
+    const contractAddress =
+      "0x94da855248247602756c7ab111cac9a0ba35831965c9d4b2cc968147d8cc1f7b";
+    const contractModule = "nft";
+    const contractMethod = "mint";
+    txb.moveCall({
+      target: `${contractAddress}::${contractModule}::${contractMethod}`,
+      arguments: [
+        txb.pure(name),
+        txb.pure(description),
+        txb.pure(image_url),
+      ],
+    });
+  
+    return txb;
+  }
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className="w-full h-screen bg-slate-200 overflow-auto">
+      <div className="min-[1000px]:p-40 min-[600px]:p-10 min-[400px]:p-4 p-2 flex flex-col space-y-20">
+        <div
+          className="font-extrabold text-transparent min-[500px]:text-6xl text-3xl bg-clip-text bg-gradient-to-r from-purple-500 via-pink-400 to-sky-500 w-fit">
+          Mint NFT on Sui Testnet
+        </div>
+        <div className="w-full flex flex-col space-y-10">
+          <ConnectButton/>
+          {wallet.account&&(
+            <div className="border-slate-300 bg-slate-100 shadow-xl border rounded-xl p-10 flex flex-col space-y-10">
+              <div className="flex flex-col space-y-10">
+                <div className="flex flex-col space-y-6">
+                  <label className="text-2xl">Name</label>
+                  <input
+                    type="text"
+                    id="name"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 focus:outline-none"
+                    placeholder="NFT name"
+                    value={name}
+                    onChange={handleNameChange}
+                    required
+                  />
+                </div>
+                <div className="flex flex-col space-y-6">
+                  <label className="text-2xl">Description</label>
+                  <input
+                    type="text"
+                    id="description"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 focus:outline-none"
+                    placeholder="NFT description"
+                    value={description}
+                    onChange={handleDescriptionChange}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="text-2xl">
+                Choose the image for your NFT
+              </div>
+              <div className="grid grid-cols-4 min-[1000px]:gap-10 min-[600px]:gap-4 min-[400px]:gap-2 gap-1">
+                <img
+                  className={`h-full hover:scale-105 hover:brightness-125 rounded-xl cursor-pointer ${
+                    selectedImageUrl === 'https://xc6fbqjny4wfkgukliockypoutzhcqwjmlw2gigombpp2ynufaxa.arweave.net/uLxQwS3HLFUailocJWHupPJxQsli7aMgzmBe_WG0KC4'
+                      ? 'border-4 p-2 border-blue-500'
+                      : ''
+                  }`}
+                  src="https://xc6fbqjny4wfkgukliockypoutzhcqwjmlw2gigombpp2ynufaxa.arweave.net/uLxQwS3HLFUailocJWHupPJxQsli7aMgzmBe_WG0KC4"
+                  alt="nft"
+                  onClick={() =>
+                    handleImageClick('https://xc6fbqjny4wfkgukliockypoutzhcqwjmlw2gigombpp2ynufaxa.arweave.net/uLxQwS3HLFUailocJWHupPJxQsli7aMgzmBe_WG0KC4')
+                  }
+                />
+                <img
+                  className={`h-full hover:scale-105 hover:brightness-125 rounded-xl cursor-pointer ${
+                    selectedImageUrl === 'https://static.ybox.vn/2022/5/5/1653618217752-nguyen-nu-anh-thu35zz5xt5-avatar.png'
+                      ? 'border-4 p-2 border-blue-500'
+                      : ''
+                  }`}
+                  src="https://static.ybox.vn/2022/5/5/1653618217752-nguyen-nu-anh-thu35zz5xt5-avatar.png"
+                  alt="nft"
+                  onClick={() =>
+                    handleImageClick('https://static.ybox.vn/2022/5/5/1653618217752-nguyen-nu-anh-thu35zz5xt5-avatar.png')
+                  }
+                />
+                <img
+                  className={`h-full hover:scale-105 hover:brightness-125 rounded-xl cursor-pointer ${
+                    selectedImageUrl === 'https://lw3-teams-logos.s3.us-east-2.amazonaws.com/Sui%20Foundation-team-logo'
+                      ? 'border-4 p-2 border-blue-500'
+                      : ''
+                  }`}
+                  src="https://lw3-teams-logos.s3.us-east-2.amazonaws.com/Sui%20Foundation-team-logo"
+                  alt="nft"
+                  onClick={() =>
+                    handleImageClick('https://lw3-teams-logos.s3.us-east-2.amazonaws.com/Sui%20Foundation-team-logo')
+                  }
+                />
+                <img
+                  className={`h-full hover:scale-105 hover:brightness-125 rounded-xl cursor-pointer ${
+                    selectedImageUrl === 'https://airnfts.s3.amazonaws.com/nft-images/20210522/SUMMER_HOUSE_ILUSTRATIONS_1621648119342.jpg'
+                      ? 'border-4 p-2 border-blue-500'
+                      : ''
+                  }`}
+                  src="https://airnfts.s3.amazonaws.com/nft-images/20210522/SUMMER_HOUSE_ILUSTRATIONS_1621648119342.jpg"
+                  alt="nft"
+                  onClick={() =>
+                    handleImageClick('https://airnfts.s3.amazonaws.com/nft-images/20210522/SUMMER_HOUSE_ILUSTRATIONS_1621648119342.jpg')
+                  }
+                />
+              </div>
+              <div className="flex flex-col space-y-6">
+                <label className="text-2xl">
+                  Or you can add link by yourself 
+                </label>
+                <input
+                  type="text"
+                  id="image_url"
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 focus:outline-none"
+                  placeholder="your_image_url"
+                  value={selectedImageUrl}
+                  onChange={handleImageUrlChange}
+                  required
+                />
+                
+              </div>
+              <button className="font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-xl px-8 py-4 w-fit mx-auto"
+              onClick={mintNft}>
+                Mint nft
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+		</div>
   );
 }
