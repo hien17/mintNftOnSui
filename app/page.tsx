@@ -5,7 +5,7 @@ import { ConnectButton, addressEllipsis, useWallet } from "@suiet/wallet-kit";
 import { useState } from "react";
 
 
-export default function Home({children}:{children: React.ReactNode}) {
+const Home = () => {
 	const wallet = useWallet();
   const [selectedImageUrl, setSelectedImageUrl] = useState("");
   const [name, setName] = useState("");
@@ -184,3 +184,5 @@ export default function Home({children}:{children: React.ReactNode}) {
 		</div>
   );
 }
+
+export default Home;
